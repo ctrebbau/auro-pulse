@@ -8,7 +8,8 @@ import plotly.express as px
 import dash_bootstrap_components as dbc
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
-from db_utils import fetch_managers, fetch_statuses, select_company
+from db_utils import *
+
 from datetime import datetime, timedelta
 
 today = datetime.today().date()
@@ -169,6 +170,7 @@ app.layout = html.Div([
     dbc.Row(id='graphs-container', children=[])
 ])
 
+
 @app.callback(
     [Output('manager-dropdown', 'options'),
      Output('status-dropdown', 'options')],
@@ -207,7 +209,7 @@ def toggle_log_scale_radio(selected_option):
      Input('count-proportion-radio', 'value'),
      Input('log-scale-radio', 'value')]
 )
-def update_graphs(selected_company, start_date, end_date, selected_managers, 
+def update_line_graphs(selected_company, start_date, end_date, selected_managers, 
                   selected_statuses, plot_type, log_scale):
     if not selected_managers:
         return [html.Div("No manager selected. Please select a manager to "
@@ -260,7 +262,9 @@ def update_graphs(selected_company, start_date, end_date, selected_managers,
                 'log' if plot_type == 'count' and log_scale == 'log' else 'linear'
             )
 
-            # Add traces to the subplot
+            # Show legend only for the last subplot in each row
+            show_legend = j == len(managers_in_row)
+
             for status in unique_statuses:
                 if status in manager_data['status'].unique():
                     status_data = manager_data[manager_data['status'] == status]
@@ -270,19 +274,15 @@ def update_graphs(selected_company, start_date, end_date, selected_managers,
                             y=status_data[y_axis], 
                             mode='lines', 
                             name=status,
-                            line=dict(
-                                color=color_map[status]
-                            ),
-                            showlegend=(i == 0 and j == 1)
+                            line=dict(color=color_map[status]),
+                            showlegend=show_legend
                         ),
                         row=1, col=j
                     )
+
             fig.update_yaxes(type=y_scale, row=1, col=j)
 
-        # Update subplot layout
         fig.update_layout(height=400)
-
-        # Append the subplot for the graphs
         graph_row = dbc.Row([dbc.Col(dcc.Graph(figure=fig), width=12)])
         rows.append(graph_row)
 
@@ -316,6 +316,7 @@ def update_graphs(selected_company, start_date, end_date, selected_managers,
     return rows
 
 
+
 def proportion_data(df):
     grouped_data = df.groupby(['date', 'manager', 'status']).size().reset_index(name='count')
     total_cars_per_manager_date = df.groupby(['date', 'manager']).size().reset_index(name='total_count')
@@ -323,7 +324,6 @@ def proportion_data(df):
     proportion_data['proportion'] = proportion_data['count'] / proportion_data['total_count']
     proportion_data['proportion'] = proportion_data['proportion'].apply(lambda x: round(x, 2))
     return proportion_data
-
 # Run the app
 if __name__ == '__main__':
     app.run_server(debug=True)
