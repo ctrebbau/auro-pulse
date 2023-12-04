@@ -296,9 +296,9 @@ def update_line_graphs(selected_company, start_date, end_date, selected_managers
                     manager_data['status'].isin(selected_statuses)
                     ]
             manager_data = manager_data.drop(columns=['manager'])
-
+            columns_order = ['status', 'date', 'count', 'total_count', 'proportion']
             table_data = dash_table.DataTable(
-                columns=[{"name": i, "id": i} for i in manager_data.columns],
+                columns=[{"name": i, "id": i} for i in columns_order],
                 data=manager_data.to_dict('records'),
                 style_table={
                     'overflowY': 'scroll',
